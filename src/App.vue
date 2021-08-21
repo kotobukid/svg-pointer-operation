@@ -1,12 +1,12 @@
-<template>
-  <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js + TypeScript App"/>
-  </div>
+<template lang="pug">
+  #app
+    svg(width="480" height="600")
+      rect(x="0" y="0" width="480" height="600" fill="pink")
+      circle(cx="240" cy="300" r="100" stroke="black" stroke-width="1" fill="transparent")
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator';
+import {Component, Vue} from 'vue-property-decorator';
 import HelloWorld from './components/HelloWorld.vue';
 
 @Component({
@@ -14,7 +14,8 @@ import HelloWorld from './components/HelloWorld.vue';
     HelloWorld,
   },
 })
-export default class App extends Vue {}
+export default class App extends Vue {
+}
 </script>
 
 <style lang="less">
