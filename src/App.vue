@@ -139,8 +139,8 @@ export default class App extends Vue {
 
     if (e.touches.length === 1) {
       if (this.dragging) {
-        this.circle_x = e.touches[0].clientX - this.global_translate.x;
-        this.circle_y = e.touches[0].clientY - this.global_translate.y;
+        this.circle_x = (e.touches[0].clientX - this.global_translate.x)  / this.current_scale;
+        this.circle_y = (e.touches[0].clientY - this.global_translate.y)  / this.current_scale;
       } else {
         if (this.touch_count === 1) {
           this.global_translate.x += (e.touches[0].clientX - this.last_touch_point.x);
