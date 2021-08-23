@@ -5,7 +5,7 @@
       @touchmove="touchmove"
       @touchstart="touchstart"
     )
-      g(:transform="`translate(${global_translate.x}, ${global_translate.y})`")
+      g(:transform="`translate(${global_translate.x}, ${global_translate.y}) scale(${current_scale})`")
         rect(x="-2000" y="-2000" width="4480" height="4600" fill="pink")
         g.grid
           line(
@@ -49,6 +49,8 @@
         a.button(href="#" @click.prevent="pan(0, -1)") ⬆
         a.button(href="#" @click.prevent="pan(1, 0)") ➡
     .info
+      span  scale {{ current_scale }}
+      br
       span  circle {{ circle_x }} , {{ circle_y }}
       br
       span  drag_start_point {{ drag_start_point.x }} , {{ drag_start_point.y }}
@@ -92,6 +94,8 @@ export default class App extends Vue {
   touches: { id: number, clientX: number, clientY: number }[] = []
 
   global_translate: Point2D = {x: 0, y: 0};
+  current_scale: number = 1.0;
+  scale_standard = -1;
 
   pan(deltaX: number, deltaY: number): void {
     this.global_translate.x += deltaX;
@@ -147,6 +151,8 @@ export default class App extends Vue {
       this.touch_count = 1;
     } else {
       //　指2本以上によるタッチ
+
+      // パン操作
       const touch_center: Point2D = {
         x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
         y: (e.touches[0].clientY + e.touches[1].clientY) / 2
@@ -158,6 +164,26 @@ export default class App extends Vue {
 
       this.last_touch_point = touch_center;
 
+      // ピンチ操作
+      // if (this.touch_count === 2) {
+      //   if (this.scale_standard === -1) {
+      //     // 指が1本から2本になった瞬間
+      //     this.scale_standard = Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2);
+      //   } else {
+      //     this.current_scale *= Math.sqrt((Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2)) / this.scale_standard)
+      //   }
+      // } else {
+      //   this.scale_standard = -1;
+      // }
+
+      const next_scale_standard: number = Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2);
+      if (next_scale_standard > this.scale_standard) {
+        this.current_scale = Math.min(2, this.current_scale + 0.05);
+      } else {
+        this.current_scale = Math.max(0.5, this.current_scale - 0.05);
+      }
+      this.scale_standard = next_scale_standard;
+
       this.touches = _.map(e.touches, (t) => {
         return {
           id: t.identifier,
@@ -166,8 +192,9 @@ export default class App extends Vue {
         };
       });
 
-      this.touch_count = 2;
+      this.touch_count = e.touches.length;
     }
+      console.log(e)
   }
 }
 </script>
