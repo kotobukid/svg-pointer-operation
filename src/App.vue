@@ -3,6 +3,7 @@
     svg(
       width="480" height="600"
       @touchmove="touchmove"
+      @touchstart="touchstart"
     )
       g(:transform="`translate(${global_translate.x}, ${global_translate.y})`")
         rect(x="0" y="0" width="480" height="600" fill="pink")
@@ -42,10 +43,15 @@
         )
     .actions
       a.button(href="#" @click.prevent="reload") reload
+      .pan-actions
+        a.button(href="#" @click.prevent="pan(-1, 0)") ⬅
+        a.button(href="#" @click.prevent="pan(0, 1)") ⬇
+        a.button(href="#" @click.prevent="pan(0, -1)") ⬆
+        a.button(href="#" @click.prevent="pan(1, 0)") ➡
     .info
       span  circle {{ circle_x }} , {{ circle_y }}
       br
-      span  touch_start_point {{ touch_start_point.x }} , {{ touch_start_point.y }}
+      span  drag_start_point {{ drag_start_point.x }} , {{ drag_start_point.y }}
       br
       table
         colgroup
@@ -79,12 +85,17 @@ export default class App extends Vue {
 
   global_translate: { x: number, y: number } = {x: 0, y: 0};
 
+  pan(deltaX: number, deltaY: number): void {
+    this.global_translate.x += deltaX;
+    this.global_translate.y += deltaY;
+  }
+
   dragging: boolean = false;
 
   start_dragging(e: TouchEvent) {
     this.dragging = true;
 
-    this.touch_start_point = {
+    this.drag_start_point = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
     }
@@ -94,7 +105,8 @@ export default class App extends Vue {
     this.dragging = false;
   }
 
-  touch_start_point: { x: number, y: number } = {x: 240, y: 300}
+  drag_start_point: { x: number, y: number } = {x: 240, y: 300}
+  last_touch_point: { x: number, y: number } = {x: 0, y: 0}
   circle_x: number = 240;
   circle_y: number = 300;
 
@@ -102,11 +114,25 @@ export default class App extends Vue {
     location.reload();
   }
 
+  touchstart(e: TouchEvent): void {
+    this.last_touch_point = {
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    }
+  }
+
   touchmove(e: TouchEvent): void {
 
-    if (e.touches.length === 1 && this.dragging) {
-      this.circle_x = e.touches[0].clientX - this.global_translate.x;
-      this.circle_y = e.touches[0].clientY - this.global_translate.y;
+    if (e.touches.length === 1) {
+      if (this.dragging) {
+        this.circle_x = e.touches[0].clientX - this.global_translate.x;
+        this.circle_y = e.touches[0].clientY - this.global_translate.y;
+      } else {
+        this.global_translate.x += (e.touches[0].clientX - this.last_touch_point.x);
+        this.global_translate.y += (e.touches[0].clientY - this.last_touch_point.y);
+
+        this.last_touch_point = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+      }
     } else {
       this.global_translate = {
         x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
@@ -149,6 +175,16 @@ export default class App extends Vue {
       text-align: right;
       border: 1px solid black;
       overflow-x: hidden
+    }
+  }
+
+  .pan-actions {
+    padding: 10px;
+
+    a {
+      padding: 10px 15px;
+      border: 1px solid grey;
+      text-decoration: none;
     }
   }
 }
