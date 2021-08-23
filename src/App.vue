@@ -6,7 +6,7 @@
       @touchstart="touchstart"
     )
       g(:transform="`translate(${global_translate.x}, ${global_translate.y})`")
-        rect(x="0" y="0" width="480" height="600" fill="pink")
+        rect(x="-2000" y="-2000" width="4480" height="4600" fill="pink")
         g.grid
           line(
             v-for="y in [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000]"
@@ -75,6 +75,14 @@ import {Component, Vue} from 'vue-property-decorator';
 import HelloWorld from './components/HelloWorld.vue';
 import _ from 'lodash';
 
+declare type Point2D = {
+  x: number, y: number
+}
+
+declare type Movement = {
+  x: number, y: number
+}
+
 @Component({
   components: {
     HelloWorld,
@@ -83,7 +91,7 @@ import _ from 'lodash';
 export default class App extends Vue {
   touches: { id: number, clientX: number, clientY: number }[] = []
 
-  global_translate: { x: number, y: number } = {x: 0, y: 0};
+  global_translate: Point2D = {x: 0, y: 0};
 
   pan(deltaX: number, deltaY: number): void {
     this.global_translate.x += deltaX;
@@ -105,8 +113,8 @@ export default class App extends Vue {
     this.dragging = false;
   }
 
-  drag_start_point: { x: number, y: number } = {x: 240, y: 300}
-  last_touch_point: { x: number, y: number } = {x: 0, y: 0}
+  drag_start_point: Point2D = {x: 240, y: 300}
+  last_touch_point: Point2D = {x: 0, y: 0}
   circle_x: number = 240;
   circle_y: number = 300;
 
@@ -121,6 +129,8 @@ export default class App extends Vue {
     }
   }
 
+  touch_count: number = 0;
+
   touchmove(e: TouchEvent): void {
 
     if (e.touches.length === 1) {
@@ -128,16 +138,25 @@ export default class App extends Vue {
         this.circle_x = e.touches[0].clientX - this.global_translate.x;
         this.circle_y = e.touches[0].clientY - this.global_translate.y;
       } else {
-        this.global_translate.x += (e.touches[0].clientX - this.last_touch_point.x);
-        this.global_translate.y += (e.touches[0].clientY - this.last_touch_point.y);
-
+        if (this.touch_count === 1) {
+          this.global_translate.x += (e.touches[0].clientX - this.last_touch_point.x);
+          this.global_translate.y += (e.touches[0].clientY - this.last_touch_point.y);
+        }
         this.last_touch_point = {x: e.touches[0].clientX, y: e.touches[0].clientY};
       }
+      this.touch_count = 1;
     } else {
-      this.global_translate = {
+      //　指2本以上によるタッチ
+      const touch_center: Point2D = {
         x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
         y: (e.touches[0].clientY + e.touches[1].clientY) / 2
       }
+      if (this.touch_count === 2) {
+        this.global_translate.x += (touch_center.x - this.last_touch_point.x);
+        this.global_translate.y += (touch_center.y - this.last_touch_point.y);
+      }
+
+      this.last_touch_point = touch_center;
 
       this.touches = _.map(e.touches, (t) => {
         return {
@@ -146,6 +165,8 @@ export default class App extends Vue {
           clientY: Math.floor(t.clientY),
         };
       });
+
+      this.touch_count = 2;
     }
   }
 }
