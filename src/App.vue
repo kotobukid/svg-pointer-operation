@@ -4,9 +4,11 @@
       width="480" height="600"
       @touchmove="tm"
       @touchstart="ts"
+
       @pointerdown="tsp"
       @pointerup="tep"
       @pointermove="tmp"
+
       @wheel="wheel"
     )
       g(:transform="`translate(${global_translate.x}, ${global_translate.y}) scale(${current_scale})`")
@@ -20,9 +22,10 @@
             v-for="x in [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]"
             y1="0" y2="1000" :x1="x" :x2="x" stroke-width="1" stroke="grey"
           )
-        circle(:cx="circle_x" :cy="circle_y" r="100" stroke="black" stroke-width="1" :fill="dragging ? 'red' : 'grey'"
-          @touchstart="sd"
-          @touchend="stop_d"
+        circle(:cx="circle_x" :cy="circle_y" r="100" stroke="black" stroke-width="1" :fill="circle_dragging ? 'red' : 'grey'"
+          @touchstart.stop="sd"
+          @touchend.stop="stop_d"
+
           @pointerdown="sdp"
           @pointerup="stop_dP"
         )
@@ -55,6 +58,9 @@
       a.button(href="#" @click.prevent="save_camera") カメラ保存
       span(v-if="touchable") タッチ可能
       span(v-else) タッチ不可能
+      span /
+      span(v-if="map_dragging") マップ
+      span(v-if="circle_dragging") サークル
       br
       a.button(href="#" @click.prevent="load_camera($index)" v-for="(c, $index) in camera_history") {{ c.id }}
       .pan-actions
@@ -161,13 +167,13 @@ export default class App extends Vue {
     }
   }
 
-  stop_d(e) {
+  stop_d() {
     if (this.touchable) {
       this.stop_dragging();
     }
   }
 
-  stop_dP(e) {
+  stop_dP() {
     if (this.touchable) {
     } else {
       this.stop_draggingP();
@@ -193,10 +199,11 @@ export default class App extends Vue {
     this.global_translate.y += deltaY;
   }
 
-  dragging: boolean = false;
+  map_dragging: boolean = false;
+  circle_dragging: boolean = false;
 
   start_draggingP(e: PointerEvent) {
-    this.dragging = true;
+    this.circle_dragging = true;
 
     this.drag_start_point = {
       x: e.clientX,
@@ -205,7 +212,7 @@ export default class App extends Vue {
   }
 
   start_dragging(e: TouchEvent) {
-    this.dragging = true;
+    this.circle_dragging = true;
 
     this.drag_start_point = {
       x: e.touches[0].clientX,
@@ -214,11 +221,11 @@ export default class App extends Vue {
   }
 
   stop_dragging() {
-    this.dragging = false;
+    this.circle_dragging = false;
   }
 
   stop_draggingP() {
-    this.dragging = false;
+    this.circle_dragging = false;
   }
 
   drag_start_point: Point2D = {x: 240, y: 300}
@@ -291,8 +298,8 @@ export default class App extends Vue {
     )
   }
 
-
   touchstart(e: TouchEvent): void {
+    this.map_dragging = true;
     this.last_touch_point = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY
@@ -300,7 +307,7 @@ export default class App extends Vue {
   }
 
   touchstartP(e: PointerEvent): void {
-    this.dragging = true;
+    this.map_dragging = true;
     this.last_touch_point = {
       x: e.clientX,
       y: e.clientY
@@ -308,13 +315,13 @@ export default class App extends Vue {
   }
 
   touchendP(e: PointerEvent): void {
-    this.dragging = false;
+    this.map_dragging = false;
   }
 
   touch_count: number = 0;
 
   touchmoveP(e: PointerEvent): void {
-    if (this.dragging) {
+    if (this.map_dragging) {
       this.global_translate.x += e.movementX;
       this.global_translate.y += e.movementY;
     }
@@ -325,10 +332,10 @@ export default class App extends Vue {
   touchmove(e: TouchEvent): void {
 
     if (e.touches.length === 1) {
-      if (this.dragging) {
+      if (this.circle_dragging) {
         this.circle_x = (e.touches[0].clientX - this.global_translate.x) / this.current_scale;
         this.circle_y = (e.touches[0].clientY - this.global_translate.y) / this.current_scale;
-      } else {
+      } else if (this.map_dragging) {
         if (this.touch_count === 1) {
           this.global_translate.x += (e.touches[0].clientX - this.last_touch_point.x);
           this.global_translate.y += (e.touches[0].clientY - this.last_touch_point.y);
@@ -381,7 +388,6 @@ export default class App extends Vue {
 
       this.touch_count = e.touches.length;
     }
-    // console.log(e)
   }
 }
 </script>
