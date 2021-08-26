@@ -47,6 +47,9 @@
           stroke-width="1"
           fill="lightgreen"
         )
+      g.finger-mark.pinch-start-point(v-if="touchable" :transform="`translate(${pinch_start_point.x}, ${pinch_start_point.y})`")
+        line(x1="-10" y1="-10" x2="10" y2="10" stroke="blue" stroke-width="2")
+        line(x1="10" y1="-10" x2="-10" y2="10" stroke="blue" stroke-width="2")
     .actions
       a.button(href="#" @click.prevent="reload") reload
       a.button(href="#" @click.prevent="save_camera") カメラ保存
@@ -134,7 +137,7 @@ export default class App extends Vue {
     if (this.touchable) {
 
     } else {
-      this.touchendtP(e)
+      this.touchendP(e)
     }
   }
 
@@ -241,18 +244,19 @@ export default class App extends Vue {
   zoom_level: number = 7;
 
   change_scale(zoom_up: boolean, center_x: number, center_y: number) {
-    const next_scale_standard: number = Math.pow(center_x, 2) + Math.pow(center_y, 2);
-    const zoom_value_before = this.current_scale * 1;
+    const zoom_value_before = (() => {
+      return this.current_scale
+    })();
+
     let zoom_level = this.zoom_level;
     if (zoom_up) {
       zoom_level = Math.min(ZOOM_LEVELS.length - 1, zoom_level + 1);
     } else {
       zoom_level = Math.max(0, zoom_level - 1);
     }
+
     this.current_scale = ZOOM_LEVELS[zoom_level];
     this.zoom_level = zoom_level;
-
-    this.scale_standard = next_scale_standard;
 
     const mouse_position: Point2D = {x: center_x, y: center_y};
     const draw_origin: Point2D = this.global_translate;
@@ -303,7 +307,7 @@ export default class App extends Vue {
     }
   }
 
-  touchendtP(e: PointerEvent): void {
+  touchendP(e: PointerEvent): void {
     this.dragging = false;
   }
 
@@ -333,6 +337,10 @@ export default class App extends Vue {
       }
       this.touch_count = 1;
       this.pinching = false;
+
+      // ピンチ開始(指が2本であることを検知した瞬間)時に座標を取得するのでは間に合わない模様
+      this.pinch_start_point.x = this.last_touch_point.x;
+      this.pinch_start_point.y = this.last_touch_point.y;
     } else {
       //　指2本以上によるタッチ
 
@@ -354,7 +362,8 @@ export default class App extends Vue {
         this.pinching = true;
       }
 
-      this.change_scale(!(next_scale_standard > this.scale_standard), this.pinch_start_point.x, this.pinch_start_point.y);
+      this.change_scale(next_scale_standard > this.scale_standard, this.pinch_start_point.x, this.pinch_start_point.y);
+      this.scale_standard = next_scale_standard;
 
       this.touches = _.map(e.touches, (t) => {
         return {
