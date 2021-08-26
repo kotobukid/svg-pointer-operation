@@ -362,8 +362,14 @@ export default class App extends Vue {
         this.pinching = true;
       }
 
-      this.change_scale(next_scale_standard > this.scale_standard, this.pinch_start_point.x, this.pinch_start_point.y);
-      this.scale_standard = next_scale_standard;
+      const ZOOM_THRESHOLD = 0.05;
+      if (next_scale_standard > this.scale_standard * (1 + ZOOM_THRESHOLD)) {
+        this.change_scale(true, this.pinch_start_point.x, this.pinch_start_point.y);
+        this.scale_standard = next_scale_standard;
+      } else if (next_scale_standard < this.scale_standard * (1 - ZOOM_THRESHOLD)) {
+        this.change_scale(false, this.pinch_start_point.x, this.pinch_start_point.y);
+        this.scale_standard = next_scale_standard;
+      }
 
       this.touches = _.map(e.touches, (t) => {
         return {
