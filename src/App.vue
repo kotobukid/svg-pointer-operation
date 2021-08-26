@@ -7,6 +7,7 @@
       @touchstart="touchstart"
       @pointerdown="touchstartP"
       @pointerup="touchendtP"
+      @wheel="wheel"
     )
       g(:transform="`translate(${global_translate.x}, ${global_translate.y}) scale(${current_scale})`")
         rect(x="-2000" y="-2000" width="4480" height="4600" fill="pink")
@@ -147,6 +148,38 @@ export default class App extends Vue {
     location.reload();
   }
 
+  wheel(e: WheelEvent): void {
+    console.log(e)
+
+    let zoom_up: boolean = true;
+    if (e.deltaY > 0) {
+      zoom_up = false;
+    }
+
+    this.change_scale(zoom_up, e.clientX, e.clientY);
+  }
+
+  change_scale (zoom_up: boolean, center_x: number, center_y: number) {
+    const next_scale_standard: number = Math.pow(center_x, 2) + Math.pow(center_y, 2);
+    const zoom_value_before = this.current_scale * 1;
+    if (zoom_up) {
+      this.current_scale = Math.min(6, this.current_scale + 0.025);
+    } else {
+      this.current_scale = Math.max(0.3, this.current_scale - 0.025);
+    }
+    this.scale_standard = next_scale_standard;
+
+    const mouse_position: Point2D = {x: center_x, y: center_y};
+    const draw_origin: Point2D = this.global_translate;
+    const zoom_value_after: number = this.current_scale;
+    const zoom_ratio: number = zoom_value_after / zoom_value_before * -1;
+
+    this.global_translate = {
+      x: Math.round((mouse_position.x - draw_origin.x) * zoom_ratio + mouse_position.x),
+      y: Math.round((mouse_position.y - draw_origin.y) * zoom_ratio + mouse_position.y)
+    };
+  }
+
   camera_history: { x: number, y: number, scale: number, id: number }[] = [];
 
   index_ = 0;
@@ -242,23 +275,7 @@ export default class App extends Vue {
       // }
 
       const next_scale_standard: number = Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2);
-      const zoom_value_before = this.current_scale * 1;
-      if (next_scale_standard > this.scale_standard) {
-        this.current_scale = Math.min(6, this.current_scale + 0.025);
-      } else {
-        this.current_scale = Math.max(0.3, this.current_scale - 0.025);
-      }
-      this.scale_standard = next_scale_standard;
-
-      const mouse_position: Point2D = touch_center;
-      const draw_origin: Point2D = this.global_translate;
-      const zoom_value_after: number = this.current_scale;
-      const zoom_ratio: number = zoom_value_after / zoom_value_before * -1;
-
-      this.global_translate = {
-        x: Math.round((mouse_position.x - draw_origin.x) * zoom_ratio + mouse_position.x),
-        y: Math.round((mouse_position.y - draw_origin.y) * zoom_ratio + mouse_position.y)
-      };
+      this.change_scale(next_scale_standard > this.scale_standard, touch_center.x, touch_center.y);
 
 
       this.touches = _.map(e.touches, (t) => {
