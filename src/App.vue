@@ -94,6 +94,10 @@ declare type Movement = {
   x: number, y: number
 }
 
+const ZOOM_LEVELS: number[] = _.reverse([
+  0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3
+]);
+
 @Component({
   components: {
     HelloWorld,
@@ -149,7 +153,6 @@ export default class App extends Vue {
   }
 
   wheel(e: WheelEvent): void {
-    console.log(e)
 
     let zoom_up: boolean = true;
     if (e.deltaY > 0) {
@@ -159,14 +162,20 @@ export default class App extends Vue {
     this.change_scale(zoom_up, e.clientX, e.clientY);
   }
 
-  change_scale (zoom_up: boolean, center_x: number, center_y: number) {
+  zoom_level: number = 21;
+
+  change_scale(zoom_up: boolean, center_x: number, center_y: number) {
     const next_scale_standard: number = Math.pow(center_x, 2) + Math.pow(center_y, 2);
     const zoom_value_before = this.current_scale * 1;
+    let zoom_level = this.zoom_level;
     if (zoom_up) {
-      this.current_scale = Math.min(6, this.current_scale + 0.025);
+      zoom_level = Math.min(ZOOM_LEVELS.length - 1, zoom_level + 1);
     } else {
-      this.current_scale = Math.max(0.3, this.current_scale - 0.025);
+      zoom_level = Math.max(0, zoom_level - 1);
     }
+    this.current_scale = ZOOM_LEVELS[zoom_level];
+    this.zoom_level = zoom_level;
+
     this.scale_standard = next_scale_standard;
 
     const mouse_position: Point2D = {x: center_x, y: center_y};
@@ -275,7 +284,7 @@ export default class App extends Vue {
       // }
 
       const next_scale_standard: number = Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2);
-      this.change_scale(next_scale_standard > this.scale_standard, touch_center.x, touch_center.y);
+      this.change_scale(!(next_scale_standard > this.scale_standard), touch_center.x, touch_center.y);
 
 
       this.touches = _.map(e.touches, (t) => {
