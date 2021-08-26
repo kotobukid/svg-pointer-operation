@@ -48,6 +48,9 @@
         )
     .actions
       a.button(href="#" @click.prevent="reload") reload
+      a.button(href="#" @click.prevent="save_camera") カメラ保存
+      br
+      a.button(href="#" @click.prevent="load_camera($index)" v-for="(c, $index) in camera_history") {{ c.id }}
       .pan-actions
         a.button(href="#" @click.prevent="pan(-1, 0)") ⬅
         a.button(href="#" @click.prevent="pan(0, 1)") ⬇
@@ -117,6 +120,7 @@ export default class App extends Vue {
       y: e.clientY,
     }
   }
+
   start_dragging(e: TouchEvent) {
     this.dragging = true;
 
@@ -129,6 +133,7 @@ export default class App extends Vue {
   stop_dragging() {
     this.dragging = false;
   }
+
   stop_draggingP() {
     this.dragging = false;
   }
@@ -141,6 +146,29 @@ export default class App extends Vue {
   reload(): void {
     location.reload();
   }
+
+  camera_history: { x: number, y: number, scale: number, id: number }[] = [];
+
+  index_ = 0;
+
+  load_camera(index: number): void {
+    this.global_translate.x = this.camera_history[index].x;
+    this.global_translate.y = this.camera_history[index].y;
+    this.current_scale = this.camera_history[index].scale;
+  }
+
+  save_camera(): void {
+    this.index_ += 1;
+    this.camera_history.push(
+        {
+          x: this.global_translate.x,
+          y: this.global_translate.y,
+          scale: this.current_scale,
+          id: this.index_
+        }
+    )
+  }
+
 
   touchstart(e: TouchEvent): void {
     this.last_touch_point = {
@@ -175,8 +203,8 @@ export default class App extends Vue {
 
     if (e.touches.length === 1) {
       if (this.dragging) {
-        this.circle_x = (e.touches[0].clientX - this.global_translate.x)  / this.current_scale;
-        this.circle_y = (e.touches[0].clientY - this.global_translate.y)  / this.current_scale;
+        this.circle_x = (e.touches[0].clientX - this.global_translate.x) / this.current_scale;
+        this.circle_y = (e.touches[0].clientY - this.global_translate.y) / this.current_scale;
       } else {
         if (this.touch_count === 1) {
           this.global_translate.x += (e.touches[0].clientX - this.last_touch_point.x);
@@ -199,8 +227,6 @@ export default class App extends Vue {
       // }
 
       this.last_touch_point = touch_center;
-
-
 
 
       // ピンチ操作
@@ -235,19 +261,6 @@ export default class App extends Vue {
       };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
       this.touches = _.map(e.touches, (t) => {
         return {
           id: t.identifier,
@@ -258,7 +271,7 @@ export default class App extends Vue {
 
       this.touch_count = e.touches.length;
     }
-      // console.log(e)
+    // console.log(e)
   }
 }
 </script>
@@ -301,4 +314,9 @@ export default class App extends Vue {
   }
 }
 
+.button {
+  padding: 0 10px;
+  min-width: 40px;
+  border: 1px solid grey;
+}
 </style>
