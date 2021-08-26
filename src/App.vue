@@ -3,7 +3,10 @@
     svg(
       width="480" height="600"
       @touchmove="touchmove"
+      @pointermove="touchmoveP"
       @touchstart="touchstart"
+      @pointerdown="touchstartP"
+      @pointerup="touchendtP"
     )
       g(:transform="`translate(${global_translate.x}, ${global_translate.y}) scale(${current_scale})`")
         rect(x="-2000" y="-2000" width="4480" height="4600" fill="pink")
@@ -18,7 +21,9 @@
           )
         circle(:cx="circle_x" :cy="circle_y" r="100" stroke="black" stroke-width="1" :fill="dragging ? 'red' : 'grey'"
           @touchstart="start_dragging"
+          @pointerdown="start_draggingP"
           @touchend="stop_dragging"
+          @pointerup="stop_draggingP"
         )
       g.finger-mark.circles
         g.circle(v-for="c in touches" :key="c.id")
@@ -104,6 +109,14 @@ export default class App extends Vue {
 
   dragging: boolean = false;
 
+  start_draggingP(e: PointerEvent) {
+    this.dragging = true;
+
+    this.drag_start_point = {
+      x: e.clientX,
+      y: e.clientY,
+    }
+  }
   start_dragging(e: TouchEvent) {
     this.dragging = true;
 
@@ -114,6 +127,9 @@ export default class App extends Vue {
   }
 
   stop_dragging() {
+    this.dragging = false;
+  }
+  stop_draggingP() {
     this.dragging = false;
   }
 
@@ -133,7 +149,27 @@ export default class App extends Vue {
     }
   }
 
+  touchstartP(e: PointerEvent): void {
+    this.dragging = true;
+    this.last_touch_point = {
+      x: e.clientX,
+      y: e.clientY
+    }
+  }
+
+  touchendtP(e: PointerEvent): void {
+    this.dragging = false;
+  }
+
   touch_count: number = 0;
+
+  touchmoveP(e: PointerEvent): void {
+    // console.log(e);
+    if (this.dragging) {
+      this.global_translate.x += e.movementX;
+      this.global_translate.y += e.movementY;
+    }
+  }
 
   touchmove(e: TouchEvent): void {
 
@@ -222,7 +258,7 @@ export default class App extends Vue {
 
       this.touch_count = e.touches.length;
     }
-      console.log(e)
+      // console.log(e)
   }
 }
 </script>
