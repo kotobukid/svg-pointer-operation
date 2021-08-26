@@ -2,11 +2,11 @@
   #app
     svg(
       width="480" height="600"
-      @touchmove="touchmove"
-      @pointermove="touchmoveP"
-      @touchstart="touchstart"
-      @pointerdown="touchstartP"
-      @pointerup="touchendtP"
+      @touchmove="tm"
+      @touchstart="ts"
+      @pointerdown="tsp"
+      @pointerup="tep"
+      @pointermove="tmp"
       @wheel="wheel"
     )
       g(:transform="`translate(${global_translate.x}, ${global_translate.y}) scale(${current_scale})`")
@@ -21,10 +21,10 @@
             y1="0" y2="1000" :x1="x" :x2="x" stroke-width="1" stroke="grey"
           )
         circle(:cx="circle_x" :cy="circle_y" r="100" stroke="black" stroke-width="1" :fill="dragging ? 'red' : 'grey'"
-          @touchstart="start_dragging"
-          @pointerdown="start_draggingP"
-          @touchend="stop_dragging"
-          @pointerup="stop_draggingP"
+          @touchstart="sd"
+          @touchend="stop_d"
+          @pointerdown="sdp"
+          @pointerup="stop_dP"
         )
       g.finger-mark.circles
         g.circle(v-for="c in touches" :key="c.id")
@@ -50,6 +50,8 @@
     .actions
       a.button(href="#" @click.prevent="reload") reload
       a.button(href="#" @click.prevent="save_camera") カメラ保存
+      span(v-if="touchable") タッチ可能
+      span(v-else) タッチ不可能
       br
       a.button(href="#" @click.prevent="load_camera($index)" v-for="(c, $index) in camera_history") {{ c.id }}
       .pan-actions
@@ -58,7 +60,9 @@
         a.button(href="#" @click.prevent="pan(0, -1)") ⬆
         a.button(href="#" @click.prevent="pan(1, 0)") ➡
     .info
-      span  scale {{ current_scale }}
+      span zoom_level {{ zoom_level }}
+      span /
+      span scale {{ current_scale }}
       br
       span  circle {{ circle_x }} , {{ circle_y }}
       br
@@ -94,9 +98,9 @@ declare type Movement = {
   x: number, y: number
 }
 
-const ZOOM_LEVELS: number[] = _.reverse([
+const ZOOM_LEVELS: number[] = [
   0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3
-]);
+];
 
 @Component({
   components: {
@@ -104,6 +108,77 @@ const ZOOM_LEVELS: number[] = _.reverse([
   },
 })
 export default class App extends Vue {
+  tm(e) {
+    if (this.touchable) {
+      this.touchmove(e);
+    } else {
+    }
+  }
+
+  ts(e) {
+    if (this.touchable) {
+      this.touchstart(e);
+    } else {
+    }
+  }
+
+  tsp(e) {
+    if (this.touchable) {
+
+    } else {
+      this.touchstartP(e);
+    }
+  }
+
+  tep(e) {
+    if (this.touchable) {
+
+    } else {
+      this.touchendtP(e)
+    }
+  }
+
+  tmp(e) {
+    if (this.touchable) {
+    } else {
+      this.touchmoveP(e);
+    }
+  }
+
+  sd(e) {
+    if (this.touchable) {
+      this.start_dragging(e);
+    }
+  }
+
+  sdp(e) {
+    if (this.touchable) {
+    } else {
+      this.start_draggingP(e);
+    }
+  }
+
+  stop_d(e) {
+    if (this.touchable) {
+      this.stop_dragging();
+    }
+  }
+
+  stop_dP(e) {
+    if (this.touchable) {
+    } else {
+      this.stop_draggingP();
+    }
+  }
+
+  noop() {
+    console.log('noop')
+  }
+
+  get touchable(): boolean {
+    return navigator.maxTouchPoints > 1;
+  }
+
   touches: { id: number, clientX: number, clientY: number }[] = []
 
   global_translate: Point2D = {x: 0, y: 0};
@@ -144,6 +219,7 @@ export default class App extends Vue {
   }
 
   drag_start_point: Point2D = {x: 240, y: 300}
+  pinch_start_point: Point2D = {x: 240, y: 300}
   last_touch_point: Point2D = {x: 0, y: 0}
   circle_x: number = 240;
   circle_y: number = 300;
@@ -162,7 +238,7 @@ export default class App extends Vue {
     this.change_scale(zoom_up, e.clientX, e.clientY);
   }
 
-  zoom_level: number = 21;
+  zoom_level: number = 7;
 
   change_scale(zoom_up: boolean, center_x: number, center_y: number) {
     const next_scale_standard: number = Math.pow(center_x, 2) + Math.pow(center_y, 2);
@@ -234,12 +310,13 @@ export default class App extends Vue {
   touch_count: number = 0;
 
   touchmoveP(e: PointerEvent): void {
-    // console.log(e);
     if (this.dragging) {
       this.global_translate.x += e.movementX;
       this.global_translate.y += e.movementY;
     }
   }
+
+  pinching: boolean = false;
 
   touchmove(e: TouchEvent): void {
 
@@ -255,6 +332,7 @@ export default class App extends Vue {
         this.last_touch_point = {x: e.touches[0].clientX, y: e.touches[0].clientY};
       }
       this.touch_count = 1;
+      this.pinching = false;
     } else {
       //　指2本以上によるタッチ
 
@@ -263,29 +341,20 @@ export default class App extends Vue {
         x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
         y: (e.touches[0].clientY + e.touches[1].clientY) / 2
       }
-      // if (this.touch_count === 2) {
-      //   this.global_translate.x += (touch_center.x - this.last_touch_point.x);
-      //   this.global_translate.y += (touch_center.y - this.last_touch_point.y);
-      // }
 
       this.last_touch_point = touch_center;
 
-
       // ピンチ操作
-      // if (this.touch_count === 2) {
-      //   if (this.scale_standard === -1) {
-      //     // 指が1本から2本になった瞬間
-      //     this.scale_standard = Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2);
-      //   } else {
-      //     this.current_scale *= Math.sqrt((Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2)) / this.scale_standard)
-      //   }
-      // } else {
-      //   this.scale_standard = -1;
-      // }
-
       const next_scale_standard: number = Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2);
-      this.change_scale(!(next_scale_standard > this.scale_standard), touch_center.x, touch_center.y);
 
+      if (!this.pinching) {
+        this.pinch_start_point.x = touch_center.x;
+        this.pinch_start_point.y = touch_center.y;
+
+        this.pinching = true;
+      }
+
+      this.change_scale(!(next_scale_standard > this.scale_standard), this.pinch_start_point.x, this.pinch_start_point.y);
 
       this.touches = _.map(e.touches, (t) => {
         return {
