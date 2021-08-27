@@ -23,13 +23,6 @@
             v-for="x in [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500]"
             y1="0" y2="1000" :x1="x" :x2="x" stroke-width="1" stroke="grey"
           )
-        circle(:cx="circle_x" :cy="circle_y" r="100" stroke="black" stroke-width="1" :fill="circle_dragging ? 'red' : 'grey'"
-          @touchstart.stop="sd"
-          @touchend.stop="stop_d"
-
-          @pointerdown="sdp"
-          @pointerup="stop_dP"
-        )
       g.finger-mark.circles
         g.circle(v-for="c in touches" :key="c.id")
           circle(:cx="c.clientX" :cy="c.clientY" r="5" fill="lightblue" stroke-width="3" stroke="blue")
@@ -61,7 +54,6 @@
       span(v-else) タッチ不可能
       span /
       span(v-if="map_dragging") マップ
-      span(v-if="circle_dragging") サークル
       br
       a.button(href="#" @click.prevent="load_camera($index)" v-for="(c, $index) in camera_history") {{ c.id }}
       .pan-actions
@@ -73,10 +65,6 @@
       span zoom_level {{ zoom_level }}
       span /
       span scale {{ current_scale }}
-      br
-      span  circle {{ circle_x }} , {{ circle_y }}
-      br
-      span  drag_start_point {{ drag_start_point.x }} , {{ drag_start_point.y }}
       br
       table
         colgroup
@@ -166,38 +154,6 @@ export default class App extends Vue {
     }
   }
 
-  sd(e: TouchEvent) {
-    if (this.touchable) {
-      this.start_dragging(e);
-    } else {
-
-    }
-  }
-
-  sdp(e: PointerEvent) {
-    if (this.touchable) {
-
-    } else {
-      this.start_draggingP(e);
-    }
-  }
-
-  stop_d() {
-    if (this.touchable) {
-      this.stop_dragging();
-    } else {
-
-    }
-  }
-
-  stop_dP() {
-    if (this.touchable) {
-
-    } else {
-      this.stop_draggingP();
-    }
-  }
-
   noop() {
     console.log('noop')
   }
@@ -218,39 +174,9 @@ export default class App extends Vue {
   }
 
   map_dragging: boolean = false;
-  circle_dragging: boolean = false;
 
-  start_draggingP(e: PointerEvent) {
-    this.circle_dragging = true;
-
-    this.drag_start_point = {
-      x: e.clientX,
-      y: e.clientY,
-    }
-  }
-
-  start_dragging(e: TouchEvent) {
-    this.circle_dragging = true;
-
-    this.drag_start_point = {
-      x: e.touches[0].clientX,
-      y: e.touches[0].clientY,
-    }
-  }
-
-  stop_dragging() {
-    this.circle_dragging = false;
-  }
-
-  stop_draggingP() {
-    this.circle_dragging = false;
-  }
-
-  drag_start_point: Point2D = {x: 240, y: 300}
   pinch_start_point: Point2D = {x: 240, y: 300}
   last_touch_point: Point2D = {x: 0, y: 0}
-  circle_x: number = 240;
-  circle_y: number = 300;
 
   reload(): void {
     location.reload();
@@ -354,10 +280,7 @@ export default class App extends Vue {
 
   touchmove(e: TouchEvent): void {
     if (e.touches.length === 1) {
-      if (this.circle_dragging) {
-        this.circle_x = (e.touches[0].clientX - this.global_translate.x) / this.current_scale;
-        this.circle_y = (e.touches[0].clientY - this.global_translate.y) / this.current_scale;
-      } else if (this.map_dragging) {
+      if (this.map_dragging) {
         if (this.touch_count === 1) {
           this.global_translate.x += (e.touches[0].clientX - this.last_touch_point.x);
           this.global_translate.y += (e.touches[0].clientY - this.last_touch_point.y);
