@@ -4,6 +4,7 @@
       width="480" height="600"
       @touchmove="tm"
       @touchstart="ts"
+      @touchend="te"
 
       @pointerdown="tsp"
       @pointerup="tep"
@@ -117,21 +118,31 @@ const ZOOM_LEVELS: number[] = [
   },
 })
 export default class App extends Vue {
-  tm(e) {
+  tm(e: TouchEvent) {
     if (this.touchable) {
       this.touchmove(e);
     } else {
+
     }
   }
 
-  ts(e) {
+  ts(e: TouchEvent) {
     if (this.touchable) {
       this.touchstart(e);
     } else {
+
     }
   }
 
-  tsp(e) {
+  te(e: TouchEvent) {
+    if (this.touchable) {
+      this.touchend(e);
+    } else {
+
+    }
+  }
+
+  tsp(e: PointerEvent) {
     if (this.touchable) {
 
     } else {
@@ -139,7 +150,7 @@ export default class App extends Vue {
     }
   }
 
-  tep(e) {
+  tep(e: PointerEvent) {
     if (this.touchable) {
 
     } else {
@@ -147,21 +158,25 @@ export default class App extends Vue {
     }
   }
 
-  tmp(e) {
+  tmp(e: PointerEvent) {
     if (this.touchable) {
+
     } else {
       this.touchmoveP(e);
     }
   }
 
-  sd(e) {
+  sd(e: TouchEvent) {
     if (this.touchable) {
       this.start_dragging(e);
+    } else {
+
     }
   }
 
-  sdp(e) {
+  sdp(e: PointerEvent) {
     if (this.touchable) {
+
     } else {
       this.start_draggingP(e);
     }
@@ -170,11 +185,14 @@ export default class App extends Vue {
   stop_d() {
     if (this.touchable) {
       this.stop_dragging();
+    } else {
+
     }
   }
 
   stop_dP() {
     if (this.touchable) {
+
     } else {
       this.stop_draggingP();
     }
@@ -314,6 +332,11 @@ export default class App extends Vue {
     }
   }
 
+  touchend(e: TouchEvent): void {
+    this.map_dragging = false;
+    this.pinching = false;
+  }
+
   touchendP(e: PointerEvent): void {
     this.map_dragging = false;
   }
@@ -330,7 +353,6 @@ export default class App extends Vue {
   pinching: boolean = false;
 
   touchmove(e: TouchEvent): void {
-
     if (e.touches.length === 1) {
       if (this.circle_dragging) {
         this.circle_x = (e.touches[0].clientX - this.global_translate.x) / this.current_scale;
