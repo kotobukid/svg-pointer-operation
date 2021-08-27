@@ -12,7 +12,7 @@
 
       @wheel="wheel"
     )
-      g(:transform="`translate(${global_translate.x}, ${global_translate.y}) scale(${current_scale})`")
+      g(:transform="`translate(${draw_origin.x}, ${draw_origin.y}) scale(${current_zoom})`")
         rect(x="-2000" y="-2000" width="4480" height="4600" fill="pink")
         g.grid
           line(
@@ -64,7 +64,7 @@
     .info
       span zoom_level {{ zoom_level }}
       span /
-      span scale {{ current_scale }}
+      span zoom {{ current_zoom }}
       br
       table
         colgroup
@@ -96,7 +96,7 @@ declare type Movement = {
   x: number, y: number
 }
 
-const ZOOM_LEVELS: number[] = [
+const ZOOM_LEVEL: number[] = [
   0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3
 ];
 
@@ -164,13 +164,13 @@ export default class App extends Vue {
 
   touches: { id: number, clientX: number, clientY: number }[] = []
 
-  global_translate: Point2D = {x: 0, y: 0};
-  current_scale: number = 1.0;
-  scale_standard = -1;
+  draw_origin: Point2D = {x: 0, y: 0};
+  current_zoom: number = 1.0;
+  zoom_standard = -1;
 
   pan(deltaX: number, deltaY: number): void {
-    this.global_translate.x += deltaX;
-    this.global_translate.y += deltaY;
+    this.draw_origin.x += deltaX;
+    this.draw_origin.y += deltaY;
   }
 
   map_dragging: boolean = false;
@@ -189,54 +189,54 @@ export default class App extends Vue {
       zoom_up = false;
     }
 
-    this.change_scale(zoom_up, e.clientX, e.clientY);
+    this.change_zoom(zoom_up, e.clientX, e.clientY);
   }
 
   zoom_level: number = 7;
 
-  change_scale(zoom_up: boolean, center_x: number, center_y: number) {
+  change_zoom(zoom_up: boolean, center_x: number, center_y: number) {
     const zoom_value_before = (() => {
-      return this.current_scale
+      return this.current_zoom
     })();
 
     let zoom_level = this.zoom_level;
     if (zoom_up) {
-      zoom_level = Math.min(ZOOM_LEVELS.length - 1, zoom_level + 1);
+      zoom_level = Math.min(ZOOM_LEVEL.length - 1, zoom_level + 1);
     } else {
       zoom_level = Math.max(0, zoom_level - 1);
     }
 
-    this.current_scale = ZOOM_LEVELS[zoom_level];
+    this.current_zoom = ZOOM_LEVEL[zoom_level];
     this.zoom_level = zoom_level;
 
     const mouse_position: Point2D = {x: center_x, y: center_y};
-    const draw_origin: Point2D = this.global_translate;
-    const zoom_value_after: number = this.current_scale;
+    const draw_origin: Point2D = this.draw_origin;
+    const zoom_value_after: number = this.current_zoom;
     const zoom_ratio: number = zoom_value_after / zoom_value_before * -1;
 
-    this.global_translate = {
+    this.draw_origin = {
       x: Math.round((mouse_position.x - draw_origin.x) * zoom_ratio + mouse_position.x),
       y: Math.round((mouse_position.y - draw_origin.y) * zoom_ratio + mouse_position.y)
     };
   }
 
-  camera_history: { x: number, y: number, scale: number, id: number }[] = [];
+  camera_history: { x: number, y: number, zoom: number, id: number }[] = [];
 
   index_ = 0;
 
   load_camera(index: number): void {
-    this.global_translate.x = this.camera_history[index].x;
-    this.global_translate.y = this.camera_history[index].y;
-    this.current_scale = this.camera_history[index].scale;
+    this.draw_origin.x = this.camera_history[index].x;
+    this.draw_origin.y = this.camera_history[index].y;
+    this.current_zoom = this.camera_history[index].zoom;
   }
 
   save_camera(): void {
     this.index_ += 1;
     this.camera_history.push(
         {
-          x: this.global_translate.x,
-          y: this.global_translate.y,
-          scale: this.current_scale,
+          x: this.draw_origin.x,
+          y: this.draw_origin.y,
+          zoom: this.current_zoom,
           id: this.index_
         }
     )
@@ -271,8 +271,8 @@ export default class App extends Vue {
 
   touchmoveP(e: PointerEvent): void {
     if (this.map_dragging) {
-      this.global_translate.x += e.movementX;
-      this.global_translate.y += e.movementY;
+      this.draw_origin.x += e.movementX;
+      this.draw_origin.y += e.movementY;
     }
   }
 
@@ -282,8 +282,8 @@ export default class App extends Vue {
     if (e.touches.length === 1) {
       if (this.map_dragging) {
         if (this.touch_count === 1) {
-          this.global_translate.x += (e.touches[0].clientX - this.last_touch_point.x);
-          this.global_translate.y += (e.touches[0].clientY - this.last_touch_point.y);
+          this.draw_origin.x += (e.touches[0].clientX - this.last_touch_point.x);
+          this.draw_origin.y += (e.touches[0].clientY - this.last_touch_point.y);
         }
         this.last_touch_point = {x: e.touches[0].clientX, y: e.touches[0].clientY};
       }
@@ -305,7 +305,7 @@ export default class App extends Vue {
       this.last_touch_point = touch_center;
 
       // ピンチ操作
-      const next_scale_standard: number = Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2);
+      const next_zoom_standard: number = Math.pow(e.touches[0].clientX - e.touches[1].clientX, 2) + Math.pow(e.touches[0].clientY - e.touches[1].clientY, 2);
 
       if (!this.pinching) {
         this.pinch_start_point.x = touch_center.x;
@@ -315,12 +315,12 @@ export default class App extends Vue {
       }
 
       const ZOOM_THRESHOLD = 0.05;
-      if (next_scale_standard > this.scale_standard * (1 + ZOOM_THRESHOLD)) {
-        this.change_scale(true, this.pinch_start_point.x, this.pinch_start_point.y);
-        this.scale_standard = next_scale_standard;
-      } else if (next_scale_standard < this.scale_standard * (1 - ZOOM_THRESHOLD)) {
-        this.change_scale(false, this.pinch_start_point.x, this.pinch_start_point.y);
-        this.scale_standard = next_scale_standard;
+      if (next_zoom_standard > this.zoom_standard * (1 + ZOOM_THRESHOLD)) {
+        this.change_zoom(true, this.pinch_start_point.x, this.pinch_start_point.y);
+        this.zoom_standard = next_zoom_standard;
+      } else if (next_zoom_standard < this.zoom_standard * (1 - ZOOM_THRESHOLD)) {
+        this.change_zoom(false, this.pinch_start_point.x, this.pinch_start_point.y);
+        this.zoom_standard = next_zoom_standard;
       }
 
       this.touches = _.map(e.touches, (t) => {
