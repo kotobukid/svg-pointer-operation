@@ -1,7 +1,7 @@
 <template lang="pug">
   #app
     svg(
-      width="480" height="600"
+      width="480" height="500"
       @touchmove="tm"
       @touchstart="ts"
       @touchend="te"
@@ -48,14 +48,13 @@
         line(x1="-10" y1="-10" x2="10" y2="10" stroke="blue" stroke-width="2")
         line(x1="10" y1="-10" x2="-10" y2="10" stroke="blue" stroke-width="2")
     .actions
-      a.button(href="#" @click.prevent="reload") reload
+      a.button(href="#" @click.prevent="reload") 再読込
       a.button(href="#" @click.prevent="save_camera") カメラ保存
       span(v-if="touchable") タッチ可能
       span(v-else) タッチ不可能
-      span /
-      span(v-if="map_dragging") マップ
       br
-      a.button(href="#" @click.prevent="load_camera($index)" v-for="(c, $index) in camera_history") {{ c.id }}
+      .camera-actions
+        a.button(href="#" @click.prevent="load_camera($index)" v-for="(c, $index) in camera_history") カメラ{{ c.id }}
       .pan-actions
         a.button(href="#" @click.prevent="pan(-1, 0)") ⬅
         a.button(href="#" @click.prevent="pan(0, 1)") ⬇
@@ -126,6 +125,8 @@ const ZOOM_LEVEL: number[] = _.map(_.range(-1 * INITIAL_ZOOM, 150), (n: number) 
 });
 ZOOM_LEVEL[INITIAL_ZOOM] = 1.0;
 
+declare type ZoomDirection = '' | 'up' | 'down';
+
 @Component({
   components: {
     HelloWorld,
@@ -181,14 +182,14 @@ export default class App extends Vue {
   }
 
   noop() {
-    console.log('noop')
+    console.log('noop');
   }
 
   get touchable(): boolean {
     return navigator.maxTouchPoints > 1;
   }
 
-  touches: { id: number, clientX: number, clientY: number }[] = []
+  touches: { id: number, clientX: number, clientY: number }[] = [];
 
   draw_origin: Point2D = {x: 0, y: 0};
   current_zoom: number = ZOOM_LEVEL[INITIAL_ZOOM];
@@ -238,11 +239,11 @@ export default class App extends Vue {
     const mouse_position: Point2D = {x: center_x, y: center_y};
     const draw_origin: Point2D = this.draw_origin;
     const zoom_value_after: number = this.current_zoom;
-    const zoom_ratio: number = zoom_value_after / zoom_value_before * -1;
+    const zoom_delta_ratio: number = zoom_value_after / zoom_value_before * -1;
 
     this.draw_origin = {
-      x: Math.round((mouse_position.x - draw_origin.x) * zoom_ratio + mouse_position.x),
-      y: Math.round((mouse_position.y - draw_origin.y) * zoom_ratio + mouse_position.y)
+      x: Math.round((mouse_position.x - draw_origin.x) * zoom_delta_ratio + mouse_position.x),
+      y: Math.round((mouse_position.y - draw_origin.y) * zoom_delta_ratio + mouse_position.y)
     };
   }
 
@@ -287,6 +288,7 @@ export default class App extends Vue {
   touchend(e: TouchEvent): void {
     this.map_dragging = false;
     this.pinching = false;
+    this.touches = [];
   }
 
   touchendP(e: PointerEvent): void {
@@ -304,6 +306,8 @@ export default class App extends Vue {
 
   pinching: boolean = false;
 
+  last_zoom_direction: ZoomDirection = '';
+
   touchmove(e: TouchEvent): void {
     if (e.touches.length === 1) {
       if (this.map_dragging) {
@@ -316,9 +320,6 @@ export default class App extends Vue {
       this.touch_count = 1;
       this.pinching = false;
 
-      // ピンチ開始(指が2本であることを検知した瞬間)時に座標を取得するのでは間に合わない模様
-      this.pinch_start_point.x = this.last_touch_point.x;
-      this.pinch_start_point.y = this.last_touch_point.y;
     } else {
       //　指2本以上によるタッチ
 
@@ -343,21 +344,23 @@ export default class App extends Vue {
       if (next_zoom_standard > this.zoom_standard * ZOOM_THRESHOLD_SCALE_UP) {
         this.change_zoom(true, this.pinch_start_point.x, this.pinch_start_point.y);
         this.zoom_standard = next_zoom_standard;
+        this.last_zoom_direction = 'up';
       } else if (next_zoom_standard < this.zoom_standard * ZOOM_THRESHOLD_SCALE_DOWN) {
         this.change_zoom(false, this.pinch_start_point.x, this.pinch_start_point.y);
         this.zoom_standard = next_zoom_standard;
+        this.last_zoom_direction = 'down';
       }
-
-      this.touches = _.map(e.touches, (t) => {
-        return {
-          id: t.identifier,
-          clientX: Math.floor(t.clientX),
-          clientY: Math.floor(t.clientY),
-        };
-      });
 
       this.touch_count = e.touches.length;
     }
+
+    this.touches = _.map(e.touches, (t) => {
+      return {
+        id: t.identifier,
+        clientX: Math.floor(t.clientX),
+        clientY: Math.floor(t.clientY),
+      };
+    });
 
     clearElementSelection();
   }
@@ -391,6 +394,10 @@ export default class App extends Vue {
     }
   }
 
+  .camera-actions {
+    margin-bottom: 5px;
+  }
+
   .pan-actions {
     padding: 10px;
 
@@ -405,6 +412,17 @@ export default class App extends Vue {
 .button {
   padding: 0 10px;
   min-width: 40px;
+  font-size: 1rem;
+  line-height: 1rem;
   border: 1px solid grey;
+  text-decoration: none;
+  background-color: white;
+  border-radius: 3px;
+
+  &:active {
+    background-color: pink;
+    position: relative;
+    top: 1px;
+  }
 }
 </style>
