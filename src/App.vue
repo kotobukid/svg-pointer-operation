@@ -96,12 +96,12 @@ declare type Movement = {
   x: number, y: number
 }
 
-const INITIAL_ZOOM = 10;
+const INITIAL_ZOOM = 50;
 const ZOOM_THRESHOLD = 0.05;
 const ZOOM_THRESHOLD_SCALE_UP = Math.pow((1 + ZOOM_THRESHOLD), 2);
 const ZOOM_THRESHOLD_SCALE_DOWN = Math.pow((1 + ZOOM_THRESHOLD), -2);
 
-const ZOOM_LEVEL: number[] = _.map(_.range(-1 * INITIAL_ZOOM, 50), (n: number) => {
+const ZOOM_LEVEL: number[] = _.map(_.range(-1 * INITIAL_ZOOM, 150), (n: number) => {
   return Math.pow(1 + ZOOM_THRESHOLD, n)
 });
 ZOOM_LEVEL[INITIAL_ZOOM] = 1.0;
@@ -171,7 +171,7 @@ export default class App extends Vue {
   touches: { id: number, clientX: number, clientY: number }[] = []
 
   draw_origin: Point2D = {x: 0, y: 0};
-  current_zoom: number = 1.0;
+  current_zoom: number = ZOOM_LEVEL[INITIAL_ZOOM];
   zoom_standard = -1;
 
   pan(deltaX: number, deltaY: number): void {
@@ -198,7 +198,7 @@ export default class App extends Vue {
     this.change_zoom(zoom_up, e.clientX, e.clientY);
   }
 
-  zoom_level: number = 7;
+  zoom_level: number = INITIAL_ZOOM;
 
   change_zoom(zoom_up: boolean, center_x: number, center_y: number) {
     const zoom_value_before = (() => {
