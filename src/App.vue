@@ -10,7 +10,7 @@
       @pointerup="tep"
       @pointermove="tmp"
 
-      @wheel="wheel"
+      @wheel.stop.prevent="wheel"
     )
       g(:transform="`translate(${draw_origin.x}, ${draw_origin.y}) scale(${current_zoom})`")
         rect(x="-2000" y="-2000" width="4480" height="4600" fill="pink")
@@ -96,9 +96,15 @@ declare type Movement = {
   x: number, y: number
 }
 
-const ZOOM_LEVEL: number[] = [
-  0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3
-];
+const INITIAL_ZOOM = 10;
+const ZOOM_THRESHOLD = 0.05;
+const ZOOM_THRESHOLD_SCALE_UP = Math.pow((1 + ZOOM_THRESHOLD), 2);
+const ZOOM_THRESHOLD_SCALE_DOWN = Math.pow((1 + ZOOM_THRESHOLD), -2);
+
+const ZOOM_LEVEL: number[] = _.map(_.range(-1 * INITIAL_ZOOM, 50), (n: number) => {
+  return Math.pow(1 + ZOOM_THRESHOLD, n)
+});
+ZOOM_LEVEL[INITIAL_ZOOM] = 1.0;
 
 @Component({
   components: {
@@ -314,11 +320,10 @@ export default class App extends Vue {
         this.pinching = true;
       }
 
-      const ZOOM_THRESHOLD = 0.05;
-      if (next_zoom_standard > this.zoom_standard * (1 + ZOOM_THRESHOLD)) {
+      if (next_zoom_standard > this.zoom_standard * ZOOM_THRESHOLD_SCALE_UP) {
         this.change_zoom(true, this.pinch_start_point.x, this.pinch_start_point.y);
         this.zoom_standard = next_zoom_standard;
-      } else if (next_zoom_standard < this.zoom_standard * (1 - ZOOM_THRESHOLD)) {
+      } else if (next_zoom_standard < this.zoom_standard * ZOOM_THRESHOLD_SCALE_DOWN) {
         this.change_zoom(false, this.pinch_start_point.x, this.pinch_start_point.y);
         this.zoom_standard = next_zoom_standard;
       }
