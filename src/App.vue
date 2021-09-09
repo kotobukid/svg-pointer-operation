@@ -47,6 +47,7 @@
       g.finger-mark.pinch-start-point(v-if="touchable" :transform="`translate(${pinch_start_point.x}, ${pinch_start_point.y})`")
         line(x1="-10" y1="-10" x2="10" y2="10" stroke="blue" stroke-width="2")
         line(x1="10" y1="-10" x2="-10" y2="10" stroke="blue" stroke-width="2")
+      object-layer(:draw_origin="draw_origin" :zoom="current_zoom")
     .actions
       a.button(href="#" @click.prevent="reload") 再読込
       a.button(href="#" @click.prevent="save_camera") カメラ保存
@@ -85,6 +86,7 @@
 <script lang="ts">
 import {Component, Vue} from 'vue-property-decorator';
 import _ from 'lodash';
+import ObjectLayer from "@/components/ObjectLayer.vue";
 
 declare type Point2D = {
   x: number, y: number
@@ -99,17 +101,24 @@ const clearElementSelection: Function = ((): any => {
   if ((<Window>window).getSelection) {
     // @ts-ignore
     if (window.getSelection()!.empty) {  // Chrome
-      return () => {window.getSelection()!.empty();};
+      return () => {
+        window.getSelection()!.empty();
+      };
       // @ts-ignore
     } else if (window.getSelection()!.removeAllRanges) {  // Firefox
-      return () => {window.getSelection()!.removeAllRanges();};
+      return () => {
+        window.getSelection()!.removeAllRanges();
+      };
     }
     // @ts-ignore
   } else if (<Document>document.selection!) {  // IE
+    return () => {
     // @ts-ignore
-    return () => {document.selection!.empty();};
+      document.selection!.empty();
+    };
   } else {
-    return () => {}
+    return () => {
+    }
   }
 })();
 
@@ -128,6 +137,7 @@ declare type ZoomDirection = '' | 'up' | 'down';
 
 @Component({
   components: {
+    'object-layer': ObjectLayer
   },
 })
 export default class App extends Vue {
@@ -318,6 +328,10 @@ export default class App extends Vue {
       this.touch_count = 1;
       this.pinching = false;
 
+      this.pinch_start_point = {
+        x: this.last_touch_point.x,
+        y: this.last_touch_point.y
+      }
     } else {
       //　指2本以上によるタッチ
 
