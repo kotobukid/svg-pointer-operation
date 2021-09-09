@@ -96,6 +96,26 @@ declare type Movement = {
   x: number, y: number
 }
 
+const clearElementSelection: Function = ((): any => {
+  // @ts-ignore
+  if ((<Window>window).getSelection) {
+    // @ts-ignore
+    if (window.getSelection()!.empty) {  // Chrome
+      return () => {window.getSelection()!.empty();};
+      // @ts-ignore
+    } else if (window.getSelection()!.removeAllRanges) {  // Firefox
+      return () => {window.getSelection()!.removeAllRanges();};
+    }
+    // @ts-ignore
+  } else if (<Document>document.selection!) {  // IE
+    // @ts-ignore
+    return () => {document.selection!.empty();};
+  } else {
+    return () => {}
+  }
+})();
+
+
 const INITIAL_ZOOM = 50;
 const ZOOM_THRESHOLD = 0.05;
 const ZOOM_THRESHOLD_SCALE_UP = Math.pow((1 + ZOOM_THRESHOLD), 2);
@@ -338,6 +358,8 @@ export default class App extends Vue {
 
       this.touch_count = e.touches.length;
     }
+
+    clearElementSelection();
   }
 }
 </script>
