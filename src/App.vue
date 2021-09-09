@@ -84,7 +84,6 @@
 
 <script lang="ts">
 import {Component, Vue} from 'vue-property-decorator';
-import HelloWorld from './components/HelloWorld.vue';
 import _ from 'lodash';
 
 declare type Point2D = {
@@ -129,7 +128,6 @@ declare type ZoomDirection = '' | 'up' | 'down';
 
 @Component({
   components: {
-    HelloWorld,
   },
 })
 export default class App extends Vue {
